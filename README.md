@@ -1,5 +1,7 @@
 # PRISM ZERO
 
+![Prism Zero: local generation, symbolic checks, and curated JSONL. Illustrative hero artwork, not a screenshot.](assets/hero.svg)
+
 ### Generate locally. Verify explicitly. Train deliberately.
 
 Offline-first neural candidate generation, symbolic verification and accepted-only
@@ -53,6 +55,10 @@ assert result.accepted and result.attempts == 2
 
 ## Architecture
 
+![Illustrative workflow: local generation, symbolic checks, bounded rejection feedback, accepted JSONL, dataset review, separate LoRA training, and held-out evaluation. No automatic adapter promotion.](assets/architecture.svg)
+
+The diagram is illustrative, not a screenshot or benchmark. Text equivalent:
+
 ```text
 Trusted task + independent constraints
                   |
@@ -76,6 +82,9 @@ Trusted task + independent constraints
 ## Repository map
 
 ```text
+assets/
+  hero.svg
+  architecture.svg
 prism_zero/
   __init__.py
   engine.py

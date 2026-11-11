@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 340" role="img" aria-labelledby="title desc">
+<title id="title">Prism Zero: local generation and explicit verification</title>
+<desc id="desc">Illustrative hero artwork. A purple prism separates neural generation, symbolic verification and curated data. Not a benchmark or screenshot.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101126"/><stop offset="1" stop-color="#201538"/></linearGradient><linearGradient id="prism"><stop stop-color="#c4b5fd"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs>
+<rect width="1200" height="340" rx="24" fill="url(#bg)"/>
+<g fill="none" stroke="#36314e" opacity=".5"><path d="M0 85H1200M0 170H1200M0 255H1200M100 0V340M300 0V340M500 0V340M700 0V340M900 0V340M1100 0V340"/></g>
+<path d="M45 176H120" stroke="#e2e8f0" stroke-width="5"/>
+<path d="M170 72L245 230H95Z" fill="url(#prism)" fill-opacity=".7" stroke="#ddd6fe" stroke-width="3"/>
+<path d="M170 72V204L245 230M170 204L95 230" fill="none" stroke="#ddd6fe" stroke-width="2"/>
+<g fill="none" stroke-width="4"><path d="M210 155L285 122" stroke="#a78bfa"/><path d="M225 183H285" stroke="#38bdf8"/><path d="M239 214L285 246" stroke="#34d399"/></g>
+<g font-family="system-ui,Segoe UI,sans-serif"><text x="330" y="104" fill="#a78bfa" font-size="15" letter-spacing="4">OFFLINE-FIRST REASONING TOOLKIT</text><text x="325" y="176" fill="#f8fafc" font-size="64" font-weight="750" letter-spacing="2">PRISM ZERO</text><text x="330" y="218" fill="#cbd5e1" font-size="23">Generate locally. Verify explicitly. Train deliberately.</text><g font-size="15"><rect x="330" y="250" width="193" height="38" rx="19" fill="#342657"/><text x="351" y="275" fill="#ddd6fe">LOCAL GENERATION</text><rect x="537" y="250" width="214" height="38" rx="19" fill="#153449"/><text x="558" y="275" fill="#bae6fd">SYMBOLIC CHECKS</text><rect x="765" y="250" width="197" height="38" rx="19" fill="#123b34"/><text x="786" y="275" fill="#a7f3d0">CURATED JSONL</text></g></g>
+</svg>
