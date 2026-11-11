@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="Prism" height="30" role="img" viewBox="0 0 36 30" width="36">
+  
+  <defs>
+    <linearGradient id="prism-face" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a48cff"/>
+      <stop offset="1" stop-color="#6a4bea"/>
+    </linearGradient>
+  </defs>
+  <path class="body" d="M13 3 24 25H2Z" fill="url(#prism-face)"/>
+  <path class="ray" d="M18.5 13.5 35 8" stroke="#ff7a93" stroke-linecap="round" stroke-width="2"/>
+  <path class="ray" d="M19.3 15.5 35 15" stroke="#ffc35c" stroke-linecap="round" stroke-width="2"/>
+  <path class="ray" d="M20 17.5 35 22" stroke="#4fd1a1" stroke-linecap="round" stroke-width="2"/>
+</svg>
