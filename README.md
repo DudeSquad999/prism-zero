@@ -1,207 +1,259 @@
-# PRISM ZERO
+# Prism Zero
 
-![Prism Zero: local generation, symbolic checks, and curated JSONL. Illustrative hero artwork, not a screenshot.](assets/hero.svg)
+<p align="center">
+  <img src="assets/hero.svg" alt="Prism Zero — generate locally, verify explicitly, train deliberately." width="100%">
+</p>
 
-### Generate locally. Verify explicitly. Train deliberately.
+An offline-first Python toolkit that generates candidate solutions, checks explicit
+symbolic rules, retries rejected candidates, and curates accepted examples for
+local LoRA supervised fine-tuning (SFT).
 
-Offline-first neural candidate generation, symbolic verification and accepted-only
-JSONL curation for local PyTorch LoRA SFT. No hosted model API or key required.
+No hosted model API or API key is required. Model weights, dependencies, hardware,
+and electricity are still your responsibility.
 
-## Features
+[Quick start](#quick-start) · [Local models](#use-a-local-model) · [Training](#train-a-local-lora-adapter) · [Verification](#what-the-verifiers-check) · [Contributing](CONTRIBUTING.md)
 
-- Zero API costs at runtime using local checkpoints.
-- Bounded generation, rejection feedback and retry loops.
-- Python AST syntax, strict JSON Schema, timeout-bounded regex and exact rational checks.
-- Accepted-only, deduplicated JSONL with task and verifier-version identifiers.
-- Optional local Transformers inference and PyTorch/PEFT LoRA training.
-- No eval, exec, generated-code execution or remote schema resolution.
+## What it does
 
-Compute, electricity, dependencies and acquiring weights still have costs.
-This does not reproduce o1 or DeepSeek-R1. Think tags serialize generated
-explanations, not private internal computation. A passing answer does not prove
-the explanation. Retry feedback does not update weights.
+| Step | Behavior |
+| --- | --- |
+| Generate | Use a scripted demo or a trusted local Hugging Face checkpoint. |
+| Verify | Check Python syntax, JSON Schema, regex assertions, or exact rational arithmetic. |
+| Retry | Return rejection feedback within a fixed attempt budget. |
+| Curate | Export only candidates that pass all configured checks to deduplicated JSONL. |
+| Train separately | Review the dataset, then explicitly run local PyTorch/PEFT LoRA SFT. |
+
+This is not a reproduction of o1 or DeepSeek-R1. `<think>` tags contain a
+model-generated explanation, not access to private internal computation. A correct
+answer does not prove its explanation. Retrying a prompt does not update weights.
 
 ## Quick start
 
-Python 3.11 or newer:
+The demo needs Python 3.11 or newer and Git. It uses a labeled scripted generator:
+no model weights, PyTorch, or API key are needed.
+
+### 1. Get the source
 
 ```sh
+git clone https://github.com/DudeSquad999/prism-zero.git
+cd prism-zero
 python -m venv .venv
-# POSIX: source .venv/bin/activate
-# PowerShell: .venv\Scripts\Activate.ps1
+```
+
+On Windows, use `py -3` instead of `python` to create the environment if necessary.
+
+### 2. Activate the environment
+
+Linux or macOS, using bash or zsh:
+
+```sh
+source .venv/bin/activate
+```
+
+Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
+
+If PowerShell blocks activation, use `.\.venv\Scripts\python.exe` in place of
+`python` in the commands below; changing your execution policy is not required.
+
+### 3. Install and run
+
+Run these from the repository root:
+
+```sh
 python -m pip install -e ".[dev]"
 python examples/quickstart.py
 python -m pytest -q
 ```
 
-The labeled scripted model returns 41, receives rejection feedback, returns 42
-on attempt two and saves one accepted record to prism_zero_dataset.jsonl. No
-weights are downloaded. This tests orchestration, not learned self-correction.
-Re-running the demo deduplicates the same accepted example.
+Installation normally needs network access to obtain dependencies. The scripted
+demo itself does not download a model.
+
+Expected demo behavior:
+
+```text
+Attempt 1: answer 41 is rejected.
+Attempt 2: answer 42 passes verification.
+The accepted example is saved to prism_zero_dataset.jsonl.
+```
+
+This is a behavior summary, not verbatim terminal output. Re-running the demo
+keeps one copy of the same accepted example. It demonstrates the retry pipeline,
+not a pretrained model learning to reason.
+
+## Use the engine
+
+This example runs from the source checkout and reuses the demo's test double:
 
 ```python
 from pathlib import Path
+
 from examples.quickstart import ScriptedModel
 from prism_zero.engine import PrismZeroEngine, Rule
 from prism_zero.verifiers import MathEqualityVerifier
 
 engine = PrismZeroEngine(
-    ScriptedModel(), [Rule(MathEqualityVerifier("6*7"))],
-    Path("prism_zero_dataset.jsonl"), task_id="multiply-6-by-7",
+    generator=ScriptedModel(),
+    rules=[Rule(MathEqualityVerifier("6 * 7"))],
+    dataset=Path("prism_zero_dataset.jsonl"),
+    max_attempts=3,
+    task_id="multiply-6-by-7",
+    verifier_version="1",
 )
 result = engine.run("What is six times seven? Return an integer.")
 assert result.accepted and result.attempts == 2
 ```
 
-## Architecture
+## How it works
 
-![Illustrative workflow: local generation, symbolic checks, bounded rejection feedback, accepted JSONL, dataset review, separate LoRA training, and held-out evaluation. No automatic adapter promotion.](assets/architecture.svg)
+![Prism Zero workflow: generate, verify, retry rejected candidates, curate accepted examples, review, train separately, and evaluate.](assets/architecture.svg)
 
-The diagram is illustrative, not a screenshot or benchmark. Text equivalent:
+Illustrative architecture, not a screenshot or benchmark. Failed checks return
+feedback to generation; the retry limit ends unsuccessful runs. Passing examples
+are curated, reviewed, optionally used for training, and evaluated independently.
+There is no automatic adapter promotion.
 
-```text
-Trusted task + independent constraints
-                  |
-          local generation
-                  |
-       think + answer envelope
-                  |
-          symbolic checks
-             /        \
-           fail       pass
-            |           |
-    feedback + retry  atomic JSONL
-            |           |
-    reject at limit   review + local SFT
-                        |
-                  LoRA adapter
-                        |
-              held-out evaluation
-```
+## Use a local model
 
-## Repository map
-
-```text
-assets/
-  hero.svg
-  architecture.svg
-prism_zero/
-  __init__.py
-  engine.py
-  verifiers.py
-  backends.py
-  trainer.py
-examples/quickstart.py
-tests/test_core.py
-.github/workflows/tests.yml
-pyproject.toml
-README.md
-CONTRIBUTING.md
-SECURITY.md
-VALIDATION.md
-LICENSE
-.gitignore
-```
-
-## Real local generation
-
-Install ML dependencies before going offline:
+Install the optional ML dependencies before going offline:
 
 ```sh
 python -m pip install -e ".[ml,dev]"
 ```
 
-Place a trusted compatible checkpoint in models/base, including safetensors,
-tokenizer assets and a chat template. No model is bundled.
+Provide a trusted compatible causal-language-model checkpoint in `models/base`,
+including safetensors weights, tokenizer files, and a working chat template.
+No checkpoint is bundled; review the model's license and hardware requirements.
 
 ```python
 from pathlib import Path
+
 from prism_zero.backends import LocalHFGenerator
 from prism_zero.engine import PrismZeroEngine, Rule
 from prism_zero.verifiers import MathEqualityVerifier
 
-model = LocalHFGenerator("models/base", device="cpu")
-engine = PrismZeroEngine(model, [Rule(MathEqualityVerifier("42"))],
-                         Path("prism_zero_dataset.jsonl"), task_id="multiply-6-by-7")
+model = LocalHFGenerator("models/base", device="cpu", max_new_tokens=256)
+engine = PrismZeroEngine(
+    generator=model,
+    rules=[Rule(MathEqualityVerifier("42"))],
+    dataset=Path("prism_zero_dataset.jsonl"),
+    task_id="multiply-6-by-7",
+)
 result = engine.run("Compute 6 * 7. Return an integer.")
 print(result.accepted, result.attempts)
 ```
 
-Loading uses local_files_only=True, trust_remote_code=False and safetensors.
-Missing assets fail rather than download. For defense in depth set
-HF_HUB_OFFLINE=1 and HF_HUB_DISABLE_TELEMETRY=1 before startup. Enforce strict
-network isolation at the OS/container layer when required. Real models are not
-guaranteed to self-correct in two attempts. Memory depends on the checkpoint.
+Checkpoint loading uses `local_files_only=True`, `trust_remote_code=False`, and
+safetensors. Missing assets fail rather than download. Real models are not
+guaranteed to produce valid output or self-correct in two attempts.
 
-## Verifier contracts
+For defense in depth, set `HF_HUB_OFFLINE=1` and `HF_HUB_DISABLE_TELEMETRY=1`
+before starting Python. Enforce strict network isolation at the OS/container
+boundary when required; these flags are not a network sandbox.
 
-AST checks syntax, not runtime correctness or safety. JSON Schema checks
-structure, not factual truth; format annotations are not asserted. References
-are disabled, and duplicate keys, nonfinite values and numeric overflow are
-rejected. Trusted schemas still require complexity review. Regex performs full
-matching with an input bound and timeout; near-timeout outcomes depend on load.
+## What the verifiers check
 
-Math checks an independently configured target using exact fractions. Supported:
-integers, unary +/-, parentheses and +, -, *, /. Names, calls, attributes, powers,
-floats and model-supplied equalities are rejected. No candidate is evaluated with eval.
+| Verifier | Checks | Does not establish |
+| --- | --- | --- |
+| `ASTVerifier` | Python parses without execution. | Runtime safety or program correctness. |
+| `JSONSchemaVerifier` | Strict JSON satisfies a trusted Draft 2020-12 schema. | Factual truth; format annotations are not asserted. |
+| `RegexVerifier` | A trusted pattern fully matches, with input bounds and a timeout. | Semantic correctness. |
+| `MathEqualityVerifier` | Exact rational equality to an independently specified target. | Arbitrary algebra or natural-language proofs. |
 
-Rule(verifier, target="trace") checks an explanation. Every configured rule must
-pass, and at least one answer rule is required. Backend and verifier implementation
-errors propagate instead of being mislabeled as content failures.
+JSON rejects duplicate keys, nonfinite numbers, and numeric overflow. Schema
+references are disabled; trusted schemas still need complexity review. Regex
+outcomes near the timeout threshold can depend on runtime load.
 
-## Dataset and concurrency
+Math supports integers, parentheses, unary signs, and `+`, `-`, `*`, `/`.
+It rejects names, calls, attributes, powers, floats, and model-supplied equalities.
+It never uses `eval`.
 
-Records contain schema_version, id, task_id, verifier_version, prompt, trace,
-answer, attempts and checks. Change verifier_version when rule semantics change.
-IDs hash task/version/prompt/accepted content; they are not signed attestations.
-Rejected outputs are not exported. Keep datasets trusted and access-controlled.
+Use `Rule(verifier, target="trace")` to check the explanation rather than the
+answer. Every configured rule must pass, and at least one answer rule is required.
+Backend and verifier implementation errors propagate instead of being retried as
+content failures. These checks are not a sandbox or a general proof of reasoning.
 
-Use one writer process and one store instance per path. The per-instance lock
-serializes storage threads; generator thread safety remains backend-specific.
-Atomic replacement prevents partial writes, not multi-process lost updates or
-all power-loss failures. The entire file is rewritten: this is for small local
-collections, not distributed ingestion. Invalid existing JSONL aborts an update
+## Dataset contract
+
+Accepted records contain `schema_version`, `id`, `task_id`, `verifier_version`,
+`prompt`, `trace`, `answer`, `attempts`, and `checks`. Rejected outputs are not
+exported. Change `verifier_version` whenever rule semantics change.
+
+IDs hash the task, version, prompt, and accepted content; they are not signed
+attestations. Keep datasets trusted, access-controlled, and free of secrets.
+
+Use one writer process and one store instance per path. Storage threads sharing
+that instance are serialized; generator thread safety is backend-specific.
+Atomic replacement prevents partially written updates, not multi-process lost
+updates or every power-loss failure. The entire file is rewritten, so the store
+is intended for small local collections. Invalid existing JSONL aborts an update
 without replacing the existing file.
 
-## Local SFT
+## Train a local LoRA adapter
 
-Review and curate a meaningful dataset, then run:
+Review and curate a meaningful dataset first. With ML dependencies installed and
+the local checkpoint available, run from the repository root:
 
 ```sh
-prism-zero-train --model models/base --dataset prism_zero_dataset.jsonl --output adapters/run-001 --device cpu --epochs 1 --batch-size 1 --max-length 1024
+python -m prism_zero.trainer --model models/base --dataset prism_zero_dataset.jsonl --output adapters/run-001 --device cpu --epochs 1 --batch-size 1 --max-length 1024
 ```
 
-Use --device cuda only with a compatible installation. LoRA reduces trainable
-parameters, but this trainer loads the base model in full precision. Quantization,
-multi-device training and resume are not implemented. --target-modules accepts
-all-linear or architecture-specific comma-separated names.
+The installed `prism-zero-train` command is an equivalent entry point. Use
+`--device cuda` only with a compatible PyTorch/CUDA installation. LoRA reduces
+trainable parameters, but the base model is loaded in full precision. Quantization,
+multi-device training, and resume are not implemented. `--target-modules` accepts
+`all-linear` or architecture-specific comma-separated names.
 
-The inference chat template is reused. Prompt and padding labels use -100;
-position-based masking preserves genuine EOS targets. The causal model shifts
-labels internally. Oversized examples and unstable assistant boundaries fail
-rather than silently truncate answers.
+Training reuses the inference chat template. Prompt and padding labels are masked
+with `-100`; position-based masking preserves genuine EOS targets. The causal
+model shifts labels internally. Oversized examples and unstable assistant-token
+boundaries fail instead of silently truncating answers.
 
-The output directory must not exist. Output contains an adapter, tokenizer,
-training manifest and a final COMPLETE marker, not a full base checkpoint.
-An exception can leave an incomplete directory. Do not promote it. To use a
-completed adapter, load the original base checkpoint then use
-peft.PeftModel.from_pretrained with the local adapter and local_files_only=True.
-LocalHFGenerator does not automatically load adapters.
+The output directory must not exist. It receives an adapter, tokenizer, training
+manifest, and a final `COMPLETE` marker, not a complete base checkpoint. An
+exception can leave an incomplete directory; do not promote it.
 
-Training loss is not quality evaluation. No automatic promotion or learned
-improvement is claimed. Self-generated data can amplify errors or overfit; keep
-independent held-out tasks and compare against the base checkpoint.
+To use a completed adapter, load the original base checkpoint and then use
+`peft.PeftModel.from_pretrained` with the local adapter and `local_files_only=True`.
+`LocalHFGenerator` does not automatically load adapters.
 
-## Offline installation
+Training loss is not quality evaluation. Self-generated datasets can amplify
+errors or overfit. Compare against the base model on independent held-out tasks;
+no model-quality improvement or automatic deployment is claimed.
 
-Pip normally resolves dependencies from an index. For an airgapped system,
-prepare and transfer a wheelhouse, build tooling and model assets for the same
-platform, Python and accelerator stack. Install with --no-index --find-links
-wheelhouse. This repository does not bundle dependency wheels or model weights.
+## Project files
+
+| File | Purpose |
+| --- | --- |
+| [engine.py](prism_zero/engine.py) | Retry orchestration and accepted-only curation. |
+| [verifiers.py](prism_zero/verifiers.py) | Symbolic checks and bounded arithmetic. |
+| [backends.py](prism_zero/backends.py) | Local model loading and shared chat format. |
+| [trainer.py](prism_zero/trainer.py) | Explicit local LoRA training. |
+| [quickstart.py](examples/quickstart.py) | Reproducible scripted demo. |
+| [Core tests](tests/test_core.py) | Engine and verifier regressions. |
+| [SVG tests](tests/test_svg_assets.py) | Artwork safety and logo-fidelity checks. |
+| [Logo](assets/prism-mark.svg) | Supplied Prism mark used in the banner. |
+
+## Validation and offline setup
+
+[VALIDATION.md](VALIDATION.md) records the bootstrap's checks and limitations.
+[SVG quality review](assets/QUALITY.md) records visual checks.
+[GitHub Actions](https://github.com/DudeSquad999/prism-zero/actions) shows current
+CI runs; historical reports do not certify later revisions. Real-model inference,
+training, and adapter reload still require separate validation.
+
+For an airgapped system, prepare and transfer a wheelhouse, build tooling, and
+model files for the same platform, Python version, and accelerator stack. Install
+using `--no-index --find-links wheelhouse`. This repository does not bundle
+third-party wheels or model weights.
 
 ## Contributing and license
 
-Read CONTRIBUTING.md and SECURITY.md, add negative regressions, and report exact
-commands and outcomes. Never execute generated candidate code in a verifier.
-See VALIDATION.md for checks actually performed and remaining validation gaps.
-MIT applies to this source; models, datasets and dependencies retain their terms.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md), add negative
+regressions, and report exact commands and outcomes. Never execute generated code
+inside a verifier. Remove private data before sharing logs or datasets.
+
+[MIT licensed](LICENSE). Models, datasets, and dependencies retain their own terms.
