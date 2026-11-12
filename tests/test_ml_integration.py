@@ -338,3 +338,34 @@ def test_offline_flags_do_not_break_loading(checkpoint: Path, monkeypatch: pytes
     monkeypatch.setenv('HF_HUB_DISABLE_TELEMETRY', '1')
     generator = LocalHFGenerator(str(checkpoint), max_new_tokens=4, max_input_tokens=64)
     assert isinstance(generator.generate('What is six times seven?', None), str)
+
+def test_cli_evaluate_end_to_end(tmp_path: Path, training_args, capsys) -> None:
+    """CLI evaluate with a real tiny model: metrics, JSON, and adapter conditions."""
+    from prism_zero.cli import main as cli_main
+    train(training_args)
+    tasks = tmp_path / 'tasks.json'
+    tasks.write_text(json.dumps({
+        'task_set_version': 'tiny-v1',
+        'tasks': [
+            {'task_id': 'arith-1', 'category': 'arithmetic', 'prompt': 'What is six times seven?',
+             'rules': [{'verifier': 'math_equality', 'expected': '42'}]},
+            {'task_id': 'json-1', 'category': 'json', 'prompt': 'Compute the product.',
+             'rules': [{'verifier': 'json_schema',
+                        'schema': {'type': 'object', 'required': ['ok']}}]},
+        ]}), encoding='utf-8')
+    output = tmp_path / 'results.json'
+    assert cli_main(['evaluate', '--tasks', str(tasks), '--model', str(training_args.model),
+                     '--adapter', str(training_args.output), '--dataset', str(training_args.dataset),
+                     '--attempts', '2', '--max-new-tokens', '4', '--device', 'cpu',
+                     '--output', str(output), '--json']) == 0
+    captured = capsys.readouterr()
+    assert captured.out.strip()
+    evaluation = json.loads(captured.out)
+    assert set(evaluation['conditions']) == {'base_1_attempt', 'base_budget',
+                                            'adapter_1_attempt', 'adapter_budget'}
+    for name in ('base_budget', 'adapter_budget'):
+        assert evaluation['conditions'][name]['status'] == 'RUN'
+        assert evaluation['conditions'][name]['task_count'] == 2
+    assert evaluation['overlap']['checked'] is True
+    assert output.exists()
+    assert json.loads(output.read_text())['evaluation_schema_version'] == 1
