@@ -1,13 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 760" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 760" role="img" aria-labelledby="title desc">
 <title id="title">Prism Zero: generate, verify, curate, evaluate</title>
 <desc id="desc">Task and trusted rules feed local generation, then envelope parsing and symbolic verification. Rejections return bounded feedback to generation. Passing candidates enter JSONL, human review, optional local LoRA training and held-out evaluation. Retry limits reject exhausted candidates. There is no automatic adapter promotion.</desc>
-<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#94a3b8"/></marker><marker id="retry" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ffc35c"/></marker></defs>
-<rect width="1000" height="760" rx="24" fill="#0e1424"/>
-<g font-family="DejaVu Sans,Arial,sans-serif"><text x="60" y="62" fill="#f8fafc" font-size="30" font-weight="700">A loop with explicit boundaries</text><text x="60" y="98" fill="#cbd5e1" font-size="18">Local generation. Trusted constraints. Separate training decisions.</text>
-<g fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)"><path d="M320 205H370"/><path d="M630 205H680"/><path d="M940 205H966V445H940"/><path d="M680 445H630"/><path d="M370 445H320"/><path d="M190 500V585"/></g>
-<path d="M810 260V325H500V260" fill="none" stroke="#ffc35c" stroke-width="2" marker-end="url(#retry)"/>
-<g stroke-width="1.5"><rect x="60" y="150" width="260" height="110" rx="14" fill="#1b2438" stroke="#64748b"/><rect x="370" y="150" width="260" height="110" rx="14" fill="#29213f" stroke="#a48cff"/><rect x="680" y="150" width="260" height="110" rx="14" fill="#302839" stroke="#ffc35c"/><rect x="680" y="390" width="260" height="110" rx="14" fill="#153730" stroke="#4fd1a1"/><rect x="370" y="390" width="260" height="110" rx="14" fill="#1b2438" stroke="#64748b"/><rect x="60" y="390" width="260" height="110" rx="14" fill="#29213f" stroke="#a48cff"/><rect x="60" y="585" width="880" height="100" rx="14" fill="#1b2438" stroke="#64748b"/></g>
-<g fill="#f8fafc" font-size="21" font-weight="700"><text x="80" y="190">01 / Task + rules</text><text x="390" y="190">02 / Generate</text><text x="700" y="190">03 / Verify</text><text x="700" y="430">04 / Curate</text><text x="390" y="430">05 / Review</text><text x="80" y="430">06 / Local SFT</text><text x="80" y="626">07 / Evaluate before deployment</text></g>
-<g fill="#cbd5e1" font-size="17"><text x="80" y="226">Independent targets</text><text x="390" y="226">Local checkpoint or demo</text><text x="700" y="226">Envelope + symbolic rules</text><text x="700" y="466">Accepted-only JSONL</text><text x="390" y="466">Explicit dataset approval</text><text x="80" y="466">Optional LoRA adapter</text><text x="80" y="658">Compare with the base model on independent held-out tasks.</text></g>
-<text x="520" y="308" fill="#ffd69a" font-size="17">REJECT / feedback + bounded retry</text><text x="680" y="359" fill="#a7f3d0" font-size="17">PASS / configured rules only</text><text x="210" y="547" fill="#cbd5e1" font-size="17">Adapter + original base checkpoint</text><text x="60" y="727" fill="#cbd5e1" font-size="16">Illustrative workflow. No proof of arbitrary reasoning. No automatic model promotion.</text></g>
+<defs>
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#94a3b8" /></marker>
+  <marker id="retry" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#ffc35c" /></marker>
+</defs>
+<rect width="1020" height="760" rx="24" fill="#0e1424" />
+<g font-family="DejaVu Sans,Arial,sans-serif">
+  <text x="60" y="62" fill="#f8fafc" font-size="30" font-weight="700">A loop with explicit boundaries</text>
+  <text x="60" y="98" fill="#cbd5e1" font-size="18">Local generation. Trusted constraints. Separate training decisions.</text>
+
+  <!-- Connectors -->
+  <g fill="none" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)">
+    <path d="M320 205H370" />
+    <path d="M630 205H680" />
+    <path d="M940 205H975V445H940" />
+    <path d="M680 445H630" />
+    <path d="M370 445H320" />
+    <path d="M190 500V585" />
+  </g>
+
+  <!-- Retry Loop -->
+  <path d="M810 260V325H500V260" fill="none" stroke="#ffc35c" stroke-width="2" marker-end="url(#retry)" />
+
+  <!-- Boxes -->
+  <g stroke-width="1.5">
+    <rect x="60" y="150" width="260" height="110" rx="14" fill="#1b2438" stroke="#64748b" />
+    <rect x="370" y="150" width="260" height="110" rx="14" fill="#29213f" stroke="#a48cff" />
+    <rect x="680" y="150" width="260" height="110" rx="14" fill="#302839" stroke="#ffc35c" />
+    <rect x="680" y="390" width="260" height="110" rx="14" fill="#153730" stroke="#4fd1a1" />
+    <rect x="370" y="390" width="260" height="110" rx="14" fill="#1b2438" stroke="#64748b" />
+    <rect x="60" y="390" width="260" height="110" rx="14" fill="#29213f" stroke="#a48cff" />
+    <rect x="60" y="585" width="880" height="100" rx="14" fill="#1b2438" stroke="#64748b" />
+  </g>
+
+  <!-- Headers -->
+  <g fill="#f8fafc" font-size="21" font-weight="700">
+    <text x="80" y="190">01 / Task + rules</text>
+    <text x="390" y="190">02 / Generate</text>
+    <text x="700" y="190">03 / Verify</text>
+    <text x="700" y="430">04 / Curate</text>
+    <text x="390" y="430">05 / Review</text>
+    <text x="80" y="430">06 / Local SFT</text>
+    <text x="80" y="626">07 / Evaluate before deployment</text>
+  </g>
+
+  <!-- Subtexts -->
+  <g fill="#cbd5e1" font-size="17">
+    <text x="80" y="226">Independent targets</text>
+    <text x="390" y="226">Local checkpoint or demo</text>
+    <text x="700" y="226">Envelope + symbolic rules</text>
+    <text x="700" y="466">Accepted-only JSONL</text>
+    <text x="390" y="466">Explicit dataset approval</text>
+    <text x="80" y="466">Optional LoRA adapter</text>
+    <text x="80" y="658">Compare with the base model on independent held-out tasks.</text>
+  </g>
+
+  <!-- Flow & Status Labels -->
+  <text x="500" y="308" fill="#ffd69a" font-size="17">REJECT / feedback + bounded retry</text>
+  <text x="745" y="359" fill="#a7f3d0" font-size="17">PASS / configured rules only</text>
+  <text x="210" y="547" fill="#cbd5e1" font-size="17">Adapter + original base checkpoint</text>
+  <text x="60" y="727" fill="#cbd5e1" font-size="16">Illustrative workflow. No proof of arbitrary reasoning. No automatic model promotion.</text>
+</g>
 </svg>
