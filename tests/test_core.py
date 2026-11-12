@@ -1,9 +1,17 @@
 """Offline regressions with scripted generators; no model weights required."""
 from pathlib import Path
 import pytest
-from prism_zero.engine import Candidate, PrismZeroEngine, Rule
+from prism_zero.candidates import Candidate
+from prism_zero.dataset import DatasetError, DatasetStore, read_dataset
+from prism_zero.engine import PrismZeroEngine, Rule
 from prism_zero.verifiers import ASTVerifier, JSONSchemaVerifier, MathEqualityVerifier, RegexVerifier
-from prism_zero.trainer import encode_record, read_records
+from prism_zero.trainer import encode_record
+
+T_OPEN = '<' + 'think>'
+T_CLOSE = '</' + 'think>'
+A_OPEN = '<' + 'answer>'
+A_CLOSE = '</' + 'answer>'
+
 
 class Script:
     def __init__(self, outputs: list[str]) -> None:
@@ -59,8 +67,11 @@ def test_retry_and_dedup(tmp_path: Path) -> None:
     assert result.accepted and result.attempts == 2
     assert backend.feedback[0] is None and backend.feedback[1]
     engine.run('6*7?')
-    records = read_records(path)
+    records = read_dataset(path)
     assert len(records) == 1 and records[0]['answer'] == '42'
+    assert records[0]['schema_version'] == 2
+    assert records[0]['checks'][0]['target'] == 'answer'
+    assert 'created_at' in records[0]
 
 def test_exhaustion(tmp_path: Path) -> None:
     path = tmp_path/'data.jsonl'
@@ -71,7 +82,7 @@ def test_exhaustion(tmp_path: Path) -> None:
 def test_corruption_preserved(tmp_path: Path) -> None:
     path = tmp_path/'data.jsonl'
     path.write_text('corrupt\n')
-    with pytest.raises(ValueError):
+    with pytest.raises(DatasetError):
         PrismZeroEngine(Script([output('42')]), [Rule(MathEqualityVerifier('42'))], path).run('6*7?')
     assert path.read_text() == 'corrupt\n'
 
@@ -80,11 +91,25 @@ def test_trace_rule(tmp_path: Path) -> None:
     assert not PrismZeroEngine(Script([output('42')]), rules,
                               tmp_path/'data.jsonl', max_attempts=1).run('6*7?').accepted
 
-@pytest.mark.parametrize('text', ['plain', '<think></think><answer>42</answer>',
- '<think>x</think><answer>42</answer>tail', '<think><think>x</think></think><answer>42</answer>'])
-def test_bad_envelope(text: str) -> None:
-    with pytest.raises(ValueError):
-        Candidate.parse(text)
+def test_bad_envelope() -> None:
+    good = T_OPEN + 'x' + T_CLOSE + '\n' + A_OPEN + '42' + A_CLOSE
+    bad = ['plain',
+           T_CLOSE + A_OPEN + '42' + A_CLOSE,
+           T_OPEN + 'x' + T_CLOSE + A_OPEN + '42' + A_CLOSE + 'tail',
+           T_OPEN + T_OPEN + 'x' + T_CLOSE + T_CLOSE + A_OPEN + '42' + A_CLOSE,
+           T_OPEN + 'x' + T_CLOSE + '\n' + A_OPEN + A_OPEN + '42' + A_CLOSE + A_CLOSE,
+           T_OPEN + 'x' + T_CLOSE + '\n' + A_OPEN + '42' + A_CLOSE + A_CLOSE,
+           T_OPEN + '' + T_CLOSE + '\n' + A_OPEN + '42' + A_CLOSE]
+    for text in bad:
+        with pytest.raises(ValueError):
+            Candidate.parse(text)
+    assert Candidate.parse(good).answer == '42'
+
+def test_oversized_output(tmp_path: Path) -> None:
+    huge = T_OPEN + 'x'*40000 + T_CLOSE + '\n' + A_OPEN + '42' + A_CLOSE
+    result = PrismZeroEngine(Script([huge]), [Rule(MathEqualityVerifier('42'))],
+                             tmp_path/'d.jsonl', max_attempts=1).run('task')
+    assert not result.accepted and 'envelope' == result.checks[0].verifier
 
 def test_backend_error(tmp_path: Path) -> None:
     class Broken:
@@ -101,6 +126,36 @@ def test_required_rule() -> None:
     with pytest.raises(ValueError):
         PrismZeroEngine(Script([]), [])
 
+@pytest.mark.parametrize('max_attempts', [1, 20])
+def test_max_attempts_bounds(max_attempts: int, tmp_path: Path) -> None:
+    engine = PrismZeroEngine(Script([output('42')]), [Rule(MathEqualityVerifier('42'))],
+                             tmp_path/'d.jsonl', max_attempts=max_attempts)
+    assert engine.max_attempts == max_attempts
+
+@pytest.mark.parametrize('bad', [0, -1, 21, 100, 3.5, True, False, '3', None, 3.0])
+def test_max_attempts_invalid(bad: object, tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match='max_attempts'):
+        PrismZeroEngine(Script([]), [Rule(MathEqualityVerifier('42'))],
+                        tmp_path/'d.jsonl', max_attempts=bad)
+
+def test_storage_failure_after_acceptance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    path = tmp_path/'d.jsonl'
+    def broken_add(record: dict) -> None:
+        raise OSError('disk unavailable')
+    engine = PrismZeroEngine(Script([output('42')]), [Rule(MathEqualityVerifier('42'))], path)
+    monkeypatch.setattr(engine.store, 'add', broken_add)
+    with pytest.raises(OSError):
+        engine.run('6*7?')
+    assert not path.exists()
+
+def test_no_prompt_leak_in_logs(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    import logging
+    secret = 'PRIVATEPROMPTTOKEN'
+    with caplog.at_level(logging.INFO):
+        PrismZeroEngine(Script([output('41'), output('42')]),
+                        [Rule(MathEqualityVerifier('42'))], tmp_path/'d.jsonl').run(secret)
+    assert secret not in caplog.text
+
 def test_labels() -> None:
     class Tokenizer:
         def apply_chat_template(self, messages: list[dict[str,str]], tokenize: bool,
@@ -110,3 +165,14 @@ def test_labels() -> None:
     assert encode_record(Tokenizer(), row, 4)['labels'] == [-100,-100,3,4]
     with pytest.raises(ValueError):
         encode_record(Tokenizer(), row, 3)
+
+def test_answer_only_content_mode() -> None:
+    class Tokenizer:
+        def apply_chat_template(self, messages: list[dict[str,str]], tokenize: bool,
+                                add_generation_prompt: bool) -> list[int]:
+            if add_generation_prompt:
+                return [1,2]
+            return [1,2,5,6]
+    row = {'prompt':'task','trace':'explanation','answer':'42'}
+    labels = encode_record(Tokenizer(), row, 8, content_mode='answer-only')['labels']
+    assert labels == [-100,-100,5,6]

@@ -11,8 +11,10 @@ dependencies = ["jsonschema>=4.22,<5", "regex>=2024.5.15"]
 ml = ["torch>=2.2", "transformers>=4.45,<5", "peft>=0.13,<1", "safetensors>=0.4"]
 dev = ["pytest>=8,<10"]
 [project.scripts]
+prism-zero = "prism_zero.cli:main"
 prism-zero-train = "prism_zero.trainer:main"
 [tool.setuptools.packages.find]
 include = ["prism_zero*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["ml: requires the optional ML dependencies (torch, transformers, peft, safetensors)"]
