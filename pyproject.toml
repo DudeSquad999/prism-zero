@@ -16,3 +16,4 @@ prism-zero-train = "prism_zero.trainer:main"
 include = ["prism_zero*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["ml: requires the optional ML dependencies (torch, transformers, peft, safetensors)"]

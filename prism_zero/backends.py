@@ -62,7 +62,7 @@ class LocalHFGenerator:
         if adapter_path is not None:
             from peft import PeftModel
             adapter = str(local_model_path(adapter_path))
-            self.model = PeftModel.from_pretrained(self.model, adapter)
+            self.model = PeftModel.from_pretrained(self.model, adapter, local_files_only=True)
         self.model.eval()
         self.max_new_tokens, self.max_input_tokens = max_new_tokens, max_input_tokens
 
