@@ -213,12 +213,19 @@ model shifts labels internally. Oversized examples and unstable assistant-token
 boundaries fail instead of silently truncating answers.
 
 The output directory must not exist. It receives an adapter, tokenizer, training
-manifest, and a final `COMPLETE` marker, not a complete base checkpoint. An
-exception can leave an incomplete directory; do not promote it.
+manifest, and a final `COMPLETE` marker, not a complete base checkpoint. Before
+the marker is written, the saved adapter is reloaded onto a fresh copy of the
+base checkpoint and one token is generated; a failed reload leaves no `COMPLETE`
+marker. The manifest records library versions, dataset and checkpoint
+fingerprints, effective arguments, LoRA configuration, losses, duration, and
+whether reload validation ran. An exception can still leave an incomplete
+directory; do not promote it.
 
 To use a completed adapter, load the original base checkpoint and then use
 `peft.PeftModel.from_pretrained` with the local adapter and `local_files_only=True`.
-`LocalHFGenerator` does not automatically load adapters.
+`LocalHFGenerator(model_path, adapter_path="adapters/run-001")` loads a local
+adapter explicitly for inference and evaluation; nothing is promoted
+automatically.
 
 Training loss is not quality evaluation. Self-generated datasets can amplify
 errors or overfit. Compare against the base model on independent held-out tasks;
@@ -234,8 +241,81 @@ no model-quality improvement or automatic deployment is claimed.
 | [trainer.py](prism_zero/trainer.py) | Explicit local LoRA training. |
 | [quickstart.py](examples/quickstart.py) | Reproducible scripted demo. |
 | [Core tests](tests/test_core.py) | Engine and verifier regressions. |
+| [Dataset tests](tests/test_dataset.py) | Shared schema and storage-failure regressions. |
+| [ML tests](tests/test_ml_integration.py) | Optional tiny-checkpoint integration suite. |
+| [CLI tests](tests/test_cli.py) | Command-line regressions run outside the checkout. |
+| [Evaluation tests](tests/test_evaluation.py) | Metric and overlap fixtures. |
 | [SVG tests](tests/test_svg_assets.py) | Artwork safety and logo-fidelity checks. |
 | [Logo](assets/prism-mark.svg) | Supplied Prism mark used in the banner. |
+
+## Command line
+
+The installed `prism-zero` command groups the toolkit; `prism-zero-train` remains
+a compatible entry point. Machine-readable JSON goes to stdout, logs go to
+stderr, and exit codes separate success (0), operational failure (1), and
+invalid configuration (2).
+
+```sh
+prism-zero doctor --model models/base          # PASS/WARN/FAIL environment checks
+prism-zero run --config run.json               # generate, verify, retry, curate
+prism-zero dataset validate data.jsonl         # shared-contract validation
+prism-zero dataset inspect data.jsonl         # counts, fingerprint, review status
+prism-zero evaluate --tasks tasks.json --model models/base --adapter adapters/run-001
+prism-zero train --model models/base --dataset data.jsonl --output adapters/run-001
+```
+
+`run` takes a JSON configuration with `mode` (demo or local), `prompt`,
+`dataset`, bounded `max_attempts`, and an allowlisted `rules` list. Verifier
+names come from a fixed registry (`python_ast`, `json_schema`, `regex`,
+`math_equality`); configuration never dynamically imports arbitrary Python
+objects. Unknown keys, invalid types, and out-of-range values are rejected.
+Relative paths in a configuration file resolve against the file's directory.
+`doctor` performs lightweight checks without loading a model and refuses to
+install dependencies or download assets.
+
+## Evaluation
+
+`prism-zero evaluate` compares four conditions on an independent task set:
+base with one attempt, base within the attempt budget, and the same two
+conditions with an adapter. Adapter conditions are marked NOT RUN when no
+adapter is supplied, and unavailable real-model results are reported as such.
+A task set is a versioned JSON file:
+
+```json
+{"task_set_version": "1",
+ "tasks": [{"task_id": "arith-001", "category": "arithmetic", "prompt": "Compute 6 * 7.",
+            "rules": [{"verifier": "math_equality", "expected": "42"}]}]}
+```
+
+Metrics report task counts, first-attempt and within-budget pass rates,
+average attempts, invalid-envelope rate, infrastructure errors, elapsed time,
+and per-category results, with explicit denominators. Candidate rejection and
+infrastructure failure are counted separately. Evaluation never writes curated
+records into the training dataset. When a training dataset is supplied, exact
+prompt and task-id overlap is reported; exact matching does not prove the
+absence of paraphrased contamination. The scripted metric fixtures in the test
+suite verify the arithmetic; a real pretrained-model evaluation is separate
+and must not be assumed from these tests.
+
+## Dataset schema
+
+Records carry `schema_version`, `id`, `task_id`, `verifier_version`, `prompt`,
+`trace`, `answer`, `attempts`, and `checks`. Schema version 2 additionally
+records each check's target (`answer` or `trace`) so an explanation is never
+labeled verified merely because the answer passed, plus optional provenance
+(`created_at`, `generator_id`, `run_id`, `review`). Version 1 records remain
+readable without migration; version 2 is written by new runs. Content ids hash
+the task, version, prompt, and accepted content only — no timestamps — so
+identical examples stay deduplicatable across repeated runs. Repeated
+observations of the same accepted content keep the first record's provenance;
+the same id over different content is rejected as a conflict.
+
+Training content is explicit: `--train-content trace-and-answer` (default,
+the previous behavior) or `--train-content answer-only`, which trains on the
+answer block alone. Answer-only training may cause a model to omit the think
+block that the envelope parser requires; verification failures will reject
+such outputs. `--require-review` refuses to train on records without recorded
+human approval.
 
 ## Validation and offline setup
 
