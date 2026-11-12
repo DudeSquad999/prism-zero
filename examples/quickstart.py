@@ -4,14 +4,9 @@ import argparse
 import logging
 from pathlib import Path
 from prism_zero.engine import PrismZeroEngine, Rule
+from prism_zero.scripted import ScriptedModel
 from prism_zero.verifiers import MathEqualityVerifier
 
-class ScriptedModel:
-    """A labeled test double, not a pretrained reasoning model."""
-    def generate(self, prompt: str, feedback: str | None) -> str:
-        if feedback is None:
-            return '<think>I estimate the product as 41.</think><answer>41</answer>'
-        return '<think>Six groups of seven total forty-two.</think><answer>42</answer>'
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -30,6 +25,7 @@ def main() -> int:
     except Exception:
         logging.exception('Quickstart failed')
         return 1
+
 
 if __name__ == '__main__':
     raise SystemExit(main())
