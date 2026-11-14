@@ -8,7 +8,7 @@ description = "Offline candidate verification and local LoRA SFT"
 requires-python = ">=3.11"
 dependencies = ["jsonschema>=4.22,<5", "regex>=2024.5.15"]
 [project.optional-dependencies]
-ml = ["torch>=2.2", "transformers>=4.45,<5", "peft>=0.13,<1", "safetensors>=0.4"]
+ml = ["torch>=2.2", "transformers>=4.45,<6", "peft>=0.13,<1", "safetensors>=0.4"]
 dev = ["pytest>=8,<10"]
 [project.scripts]
 prism-zero = "prism_zero.cli:main"
