@@ -11,7 +11,9 @@ local LoRA supervised fine-tuning (SFT).
 No hosted model API or API key is required. Model weights, dependencies, hardware,
 and electricity are still your responsibility.
 
-[Quick start](#quick-start) · [Local models](#use-a-local-model) · [Training](#train-a-local-lora-adapter) · [Verification](#what-the-verifiers-check) · [Contributing](CONTRIBUTING.md)
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Local models](#use-a-local-model) · [Verification](#what-the-verifiers-check) · [Training](#train-a-local-lora-adapter) · [Evaluation](#evaluation) · [Contributing](CONTRIBUTING.md)
+
+**Fastest way to try it:** create a virtual environment, install `.[dev]`, then run `python examples/quickstart.py`. This uses the deterministic scripted demo and does not download model weights. See [Quick start](#quick-start) for exact commands.
 
 ## What it does
 
