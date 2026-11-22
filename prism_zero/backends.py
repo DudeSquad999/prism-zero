@@ -5,6 +5,31 @@ from typing import Any
 
 SUPPORTED_DEVICES = ('cpu', 'cuda', 'mps', 'xpu')
 
+TOKENIZER_ASSET_GROUPS = (
+    ('tokenizer.json',),
+    ('tokenizer.model',),
+    ('tokenizer.model.v3',),
+    ('spiece.model',),
+    ('sentencepiece.bpe.model',),
+    ('vocab.txt',),
+    ('tekken.json',),
+    ('qwen.tiktoken',),
+    ('vocab.json', 'merges.txt'),
+)
+
+
+def require_local_tokenizer_assets(path: Path) -> None:
+    """Reject model folders that contain weights but no local tokenizer vocabulary."""
+    if not any(
+        all((path / filename).is_file() for filename in group)
+        for group in TOKENIZER_ASSET_GROUPS
+    ):
+        raise ValueError(
+            f'Checkpoint directory has no recognized local tokenizer assets: {path}. '
+            'Provide tokenizer.json or the vocabulary files required by the tokenizer.'
+        )
+
+
 
 def local_model_path(path: str) -> Path:
     result = Path(path).expanduser().resolve(strict=True)
@@ -46,9 +71,10 @@ class LocalHFGenerator:
                              'with an optional index such as cuda:0')
         if name == 'cuda' and not torch.cuda.is_available():
             raise ValueError('CUDA requested but torch.cuda.is_available() is false')
-        path = str(local_model_path(model_path))
+        path = local_model_path(model_path)
+        require_local_tokenizer_assets(path)
         self.torch: Any = torch
-        self.tokenizer: Any = AutoTokenizer.from_pretrained(path, local_files_only=True,
+        self.tokenizer: Any = AutoTokenizer.from_pretrained(str(path), local_files_only=True,
                                                             trust_remote_code=False)
         try:
             self.tokenizer.apply_chat_template(
@@ -58,7 +84,7 @@ class LocalHFGenerator:
             raise ValueError('Checkpoint tokenizer has no usable chat template; '
                              'provide one in tokenizer_config.json') from error
         self.model: Any = AutoModelForCausalLM.from_pretrained(
-            path, local_files_only=True, trust_remote_code=False, use_safetensors=True).to(device)
+            str(path), local_files_only=True, trust_remote_code=False, use_safetensors=True).to(device)
         if adapter_path is not None:
             from peft import PeftModel
             adapter = str(local_model_path(adapter_path))

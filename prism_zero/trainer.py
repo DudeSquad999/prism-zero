@@ -19,7 +19,7 @@ import time
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from typing import Any
-from .backends import build_messages, local_model_path
+from .backends import build_messages, local_model_path, require_local_tokenizer_assets
 from .candidates import Candidate
 from .dataset import dataset_fingerprint, read_dataset
 
@@ -97,10 +97,12 @@ def encode_record(tokenizer: Any, record: dict[str, Any], max_length: int,
                   content_mode: str = 'trace-and-answer') -> dict[str, list[int]]:
     """Use the inference template, mask prompts and refuse truncation."""
     messages = build_messages(record['prompt'])
-    prefix = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True)
+    prefix = tokenizer.apply_chat_template(messages, tokenize=True, add_generation_prompt=True,
+                                              return_dict=False)
     response = response_text(record, content_mode)
     full = tokenizer.apply_chat_template(messages + [{'role': 'assistant', 'content': response}],
-                                        tokenize=True, add_generation_prompt=False)
+                                          tokenize=True, add_generation_prompt=False,
+                                          return_dict=False)
     if not prefix or full[:len(prefix)] != prefix:
         raise ValueError('Chat template has no stable assistant boundary')
     if len(full) > max_length or len(full) <= len(prefix):
@@ -172,7 +174,9 @@ def train(args: argparse.Namespace) -> dict[str, Any]:
     if not math.isfinite(args.learning_rate) or args.learning_rate <= 0:
         raise ValueError('Learning rate must be finite and positive')
     validate_device(args.device)
-    path = str(local_model_path(args.model))
+    model_directory = local_model_path(args.model)
+    require_local_tokenizer_assets(model_directory)
+    path = str(model_directory)
     if args.output.exists():
         raise FileExistsError('Choose a new output directory; existing output is never overwritten')
     records = load_training_records(args.dataset, args.require_review)
