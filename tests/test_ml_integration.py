@@ -165,7 +165,7 @@ def test_labels_prompt_masked_assistant_trainable(checkpoint: Path) -> None:
     full = tokenizer.apply_chat_template(
         build_messages(record['prompt'])
         + [{'role': 'assistant', 'content': Candidate(record['trace'], record['answer']).render()}],
-        tokenize=True, add_generation_prompt=False)
+        tokenize=True, add_generation_prompt=False, return_dict=False)
     assert row['input_ids'] == full
     prompt_length = next(i for i, value in enumerate(row['labels']) if value != -100)
     assert row['labels'][:prompt_length] == [-100] * prompt_length
@@ -217,7 +217,7 @@ def test_answer_only_labels(checkpoint: Path) -> None:
     assert any(value != -100 for value in row['labels'])
     prefix = tokenizer.apply_chat_template(
         [{'role': 'user', 'content': record['prompt']}],
-        tokenize=True, add_generation_prompt=True)
+        tokenize=True, add_generation_prompt=True, return_dict=False)
     assert row['labels'][:len(prefix)] == [-100] * len(prefix)
 
 
@@ -238,7 +238,7 @@ def test_missing_tokenizer_assets(tmp_path: Path, checkpoint: Path) -> None:
     shutil.copytree(checkpoint, stripped)
     for name in ('tokenizer.json', 'tokenizer_config.json'):
         (stripped / name).unlink()
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match='tokenizer assets'):
         LocalHFGenerator(str(stripped))
 
 
