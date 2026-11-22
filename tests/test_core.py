@@ -159,7 +159,7 @@ def test_no_prompt_leak_in_logs(tmp_path: Path, caplog: pytest.LogCaptureFixture
 def test_labels() -> None:
     class Tokenizer:
         def apply_chat_template(self, messages: list[dict[str,str]], tokenize: bool,
-                                add_generation_prompt: bool) -> list[int]:
+                                add_generation_prompt: bool, return_dict: bool = False) -> list[int]:
             return [1,2] if add_generation_prompt else [1,2,3,4]
     row = {'prompt':'task','trace':'explanation','answer':'42'}
     assert encode_record(Tokenizer(), row, 4)['labels'] == [-100,-100,3,4]
@@ -169,7 +169,7 @@ def test_labels() -> None:
 def test_answer_only_content_mode() -> None:
     class Tokenizer:
         def apply_chat_template(self, messages: list[dict[str,str]], tokenize: bool,
-                                add_generation_prompt: bool) -> list[int]:
+                                add_generation_prompt: bool, return_dict: bool = False) -> list[int]:
             if add_generation_prompt:
                 return [1,2]
             return [1,2,5,6]
