@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible Prism Zero problem.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not attach model weights, private datasets, credentials, or sensitive
+        prompts. Sanitize logs and example records before sharing.
+  - type: input
+    id: revision
+    attributes:
+      label: Commit or branch
+      placeholder: main or a commit SHA
+  - type: input
+    id: environment
+    attributes:
+      label: Python, operating system, and relevant package versions
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Command and steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or minimal fixture
+      description: Remove credentials, personal data, and private dataset content.
