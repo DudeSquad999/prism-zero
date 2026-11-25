@@ -33,7 +33,7 @@ The demo needs Python 3.11 or newer and Git. It uses a labeled scripted generato
 ### 1. Get the source
 
 \`\`\`sh
-git clone https://github.com/DudeSquad999/prism-zero.git
+git clone https://github.com/akahn30/prism-zero.git
 cd prism-zero
 python -m venv .venv
 \`\`\`
@@ -232,7 +232,7 @@ Training content is explicit: \`--train-content trace-and-answer\` (default, the
 
 ## Validation and offline setup
 
-[VALIDATION.md](VALIDATION.md) records the bootstrap's checks and limitations. [SVG quality review](assets/QUALITY.md) records visual checks. [GitHub Actions](https://github.com/DudeSquad999/prism-zero/actions) shows current CI runs; historical reports do not certify later revisions. Real-model inference, training, and adapter reload still require separate validation.
+[VALIDATION.md](VALIDATION.md) records the bootstrap's checks and limitations. [SVG quality review](assets/QUALITY.md) records visual checks. [GitHub Actions](https://github.com/akahn30/prism-zero/actions) shows current CI runs; historical reports do not certify later revisions. Real-model inference, training, and adapter reload still require separate validation.
 
 For an airgapped system, prepare and transfer a wheelhouse, build tooling, and model files for the same platform, Python version, and accelerator stack. Install using \`--no-index --find-links wheelhouse\`. This repository does not bundle third-party wheels or model weights.
 
