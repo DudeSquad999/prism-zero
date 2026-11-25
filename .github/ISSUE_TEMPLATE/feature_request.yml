@@ -1,0 +1,23 @@
+name: Feature request
+description: Propose a focused Prism Zero improvement.
+title: "enhancement: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow limitation
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Verification, dataset, or model-safety implications
+      description: Explain how the change affects verification boundaries, data provenance, offline use, or training.
